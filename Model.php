@@ -1,5 +1,7 @@
 <?php
 
+use Carbon\Carbon;
+
 require('Connection.php');
 
 class Model
@@ -79,32 +81,28 @@ class Model
     {
         $conn = new Connection();
 
-        // MUTABLE VALUES
-        $cols = implode(',', $this->allowed);
-        $values = "";
-        foreach ($this->allowed as $property) {
-            if (isset($this->attributes[$property])) $values = $values . "'" . $this->attributes[$property] . "',";
-            else $values = $values . "null,";
-        }
+        $cols = implode(',', $this->allowed) . ",created_at,updated_at";
+        $values = ":" . implode(',:', $this->allowed) . ",:created_at,:updated_at";
 
-        // TIMESTAMPS
-        $cols = $cols . ",created_at,updated_at";
-        $values = $values . "'" . date('Y-m-d H:i:s') . "','" . date('Y-m-d H:i:s') . "'";
-        // $values = rtrim($values, ",");
         $statement = "INSERT INTO " . static::$table . " ($cols) VALUES ($values);";
 
-        echo $statement;
+        $insert = [];
+        foreach ($this->allowed as $property)
+            $insert += [$property => (isset($this->attributes[$property]) ? $this->attributes[$property] : null)];
+        $insert += ["created_at" => Carbon::now(), "updated_at" => Carbon::now()];
 
-        $conn->pdo->prepare($statement)->execute();
+        $conn->pdo->prepare($statement)->execute($insert);
 
         $this->attributes = [];
+
+        return $conn->pdo->lastInsertId();
     }
 
     public static function all()
     {
         $conn = new Connection();
 
-        $statement = "SELECT * FROM " . static::$table;
+        $statement = "SELECT * FROM " . static::$table . " WHERE deleted_at IS NULL;";
         $query = $conn->pdo->query($statement);
         $models = [];
         while ($row = $query->fetch()) {
@@ -123,8 +121,9 @@ class Model
 
         $primary_key = $conn->pdo->query("SHOW KEYS FROM " . static::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
 
-        $statement = "SELECT * FROM " . static::$table . " WHERE " . $primary_key . " = " . $id;
-        $query = $conn->pdo->query($statement);
+        $statement = "SELECT * FROM " . static::$table . " WHERE $primary_key = :id AND deleted_at IS NULL;";
+        $query = $conn->pdo->prepare($statement);
+        $query->execute(['id' => $id]);
 
         $model = new static();
         $row = $query->fetch();
@@ -142,8 +141,10 @@ class Model
     {
         $conn = new Connection();
 
-        $statement = "SELECT * FROM " . static::$table . " WHERE " . $property . " = '" . $value . "'";
-        $query = $conn->pdo->query($statement);
+        $statement = "SELECT * FROM " . static::$table . " WHERE $property = :value AND deleted_at IS NULL;";
+        $query = $conn->pdo->prepare($statement);
+        $query->execute(['value' => $value]);
+
         $models = [];
         while ($row = $query->fetch()) {
             $model = new static();
@@ -154,5 +155,38 @@ class Model
         }
         if (empty($models)) throw new Exception("No rows found with set parameters");
         return $models;
+    }
+
+    public function update(int $id)
+    {
+        $conn = new Connection();
+        $primary_key = $conn->pdo->query("SHOW KEYS FROM " . static::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
+
+        $statement = "UPDATE " . static::$table . " SET";
+        foreach (array_keys($this->attributes) as $property) {
+            $statement = $statement . " $property = :$property,";
+        }
+        $statement = $statement . " updated_at='" . Carbon::now() . "' WHERE $primary_key = :id AND deleted_at IS NULL;";
+        $conn->pdo->prepare($statement)->execute($this->attributes + ["id" => $id]);
+
+        $this->attributes = [];
+    }
+
+    public static function delete(int $id)
+    {
+        $conn = new Connection();
+        $primary_key = $conn->pdo->query("SHOW KEYS FROM " . static::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
+
+        $statement = "UPDATE " . static::$table . " SET deleted_at = '" . Carbon::now() . "' WHERE $primary_key = :id;";
+        $conn->pdo->prepare($statement)->execute(["id" => $id]);
+    }
+
+    public static function forceDelete(int $id)
+    {
+        $conn = new Connection();
+        $primary_key = $conn->pdo->query("SHOW KEYS FROM " . static::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
+
+        $statement = "DELETE FROM " . static::$table . " WHERE $primary_key = :id";
+        $conn->pdo->prepare($statement)->execute(["id" => $id]);
     }
 }

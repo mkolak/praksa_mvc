@@ -1,9 +1,12 @@
 <?php
 
 require('Model.php');
+require('traits/Timestamps.php');
 
 class Car extends Model
 {
+    // use Timestamps;
+
     protected $allowed = ['name', 'manufacturer', 'year', 'engine'];
     protected static $table = "cars";
 }
@@ -59,18 +62,42 @@ INSERT STATEMENTI POMOCU MODEL FUNKCIJE ZA INSERT
 // $auto->save();
 
 
-foreach (Car::all() as $value) {
-    echo $value;
-    echo "<br>";
-};
+// foreach (Car::all() as $value) {
+//     echo $value;
+//     echo "<br>";
+// };
 
-echo "<br>";
+// echo "<br>";
 
-echo Car::queryById(4);
+// echo Car::queryById(4);
 
-echo "<br><br>";
+// echo "<br><br>";
 
-foreach (Car::queryByProperty("year", 2005) as $value) {
-    echo $value;
-    echo "<br>";
+// foreach (Car::queryByProperty("year", 2005) as $value) {
+//     echo $value;
+//     echo "<br>";
+// }
+
+// $auto = new Car();
+// $auto->name = "Golf 7";
+// $auto->manufacturer = "Volkswagen";
+// $auto->year = 2013;
+// $auto->engine = "Engine 33";
+// $auto->save();
+
+// Car::delete(27);
+
+// $auto->name = "Quattroporte";
+// $auto->manufacturer = "Maserati";
+// $auto->year = 2001;
+// $auto->engine = "Engine 11";
+
+// $auto->save();
+
+foreach (Car::queryByProperty('manufacturer', 'Audi') as $value) {
+    echo $value . "<br>";
+}
+
+foreach (Car::all() as $car) {
+    echo $car . "<br>";
 }
