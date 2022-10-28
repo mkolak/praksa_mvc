@@ -2,10 +2,13 @@
 
 use Carbon\Carbon;
 
+require('traits/Timestamps.php');
 require('Connection.php');
 
 class Model
 {
+    use Timestamps;
+
     protected $attributes;
     protected $allowed = [];
     protected static $table;
@@ -81,15 +84,15 @@ class Model
     {
         $conn = new Connection();
 
-        $cols = implode(',', $this->allowed) . ",created_at,updated_at";
-        $values = ":" . implode(',:', $this->allowed) . ",:created_at,:updated_at";
+        $cols = implode(',', array_merge($this->allowed, $this->saveTimestamps()));
+        $values = ":" . implode(',:', array_merge($this->allowed, $this->saveTimestamps()));
 
         $statement = "INSERT INTO " . static::$table . " ($cols) VALUES ($values);";
 
         $insert = [];
         foreach ($this->allowed as $property)
             $insert += [$property => (isset($this->attributes[$property]) ? $this->attributes[$property] : null)];
-        $insert += ["created_at" => Carbon::now(), "updated_at" => Carbon::now()];
+        $insert += $this->saveTimestampsValues();
 
         $conn->pdo->prepare($statement)->execute($insert);
 
@@ -102,7 +105,9 @@ class Model
     {
         $conn = new Connection();
 
-        $statement = "SELECT * FROM " . static::$table . " WHERE deleted_at IS NULL;";
+        $statement = "SELECT * FROM " . static::$table;
+        if (self::$softDeletes)  $statement = $statement . " WHERE deleted_at IS NULL;";
+
         $query = $conn->pdo->query($statement);
         $models = [];
         while ($row = $query->fetch()) {
@@ -112,6 +117,7 @@ class Model
             }
             array_push($models, $model);
         }
+
         return $models;
     }
 
@@ -121,7 +127,13 @@ class Model
 
         $primary_key = $conn->pdo->query("SHOW KEYS FROM " . static::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
 
-        $statement = "SELECT * FROM " . static::$table . " WHERE $primary_key = :id AND deleted_at IS NULL;";
+        $statement = "SELECT * FROM " . static::$table . " WHERE $primary_key = :id";
+        if (self::$softDeletes) {
+            $statement = $statement . " AND deleted_at IS NULL;";
+        } else {
+            $statement = $statement . ";";
+        }
+
         $query = $conn->pdo->prepare($statement);
         $query->execute(['id' => $id]);
 
@@ -141,7 +153,13 @@ class Model
     {
         $conn = new Connection();
 
-        $statement = "SELECT * FROM " . static::$table . " WHERE $property = :value AND deleted_at IS NULL;";
+        $statement = "SELECT * FROM " . static::$table . " WHERE $property = :value";
+        if (self::$softDeletes) {
+            $statement = $statement . " AND deleted_at IS NULL;";
+        } else {
+            $statement = $statement . ";";
+        }
+
         $query = $conn->pdo->prepare($statement);
         $query->execute(['value' => $value]);
 
@@ -166,7 +184,20 @@ class Model
         foreach (array_keys($this->attributes) as $property) {
             $statement = $statement . " $property = :$property,";
         }
-        $statement = $statement . " updated_at='" . Carbon::now() . "' WHERE $primary_key = :id AND deleted_at IS NULL;";
+
+        $statement = rtrim($statement, ",");
+        if (self::$updated) {
+            $statement = $statement . ", " . self::updateTimestamp();
+        }
+
+        $statement = $statement . " WHERE $primary_key = :id";
+
+        if (self::$softDeletes) {
+            $statement = $statement . " AND deleted_at IS NULL;";
+        } else {
+            $statement = $statement . ";";
+        }
+
         $conn->pdo->prepare($statement)->execute($this->attributes + ["id" => $id]);
 
         $this->attributes = [];
@@ -174,10 +205,12 @@ class Model
 
     public static function delete(int $id)
     {
+        if (!self::$softDeletes) return self::forceDelete($id);
+
         $conn = new Connection();
         $primary_key = $conn->pdo->query("SHOW KEYS FROM " . static::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
 
-        $statement = "UPDATE " . static::$table . " SET deleted_at = '" . Carbon::now() . "' WHERE $primary_key = :id;";
+        $statement = "UPDATE " . static::$table . " SET " . self::deleteTimestamp() . " WHERE $primary_key = :id;";
         $conn->pdo->prepare($statement)->execute(["id" => $id]);
     }
 

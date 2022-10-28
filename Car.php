@@ -1,11 +1,9 @@
 <?php
 
 require('Model.php');
-require('traits/Timestamps.php');
 
 class Car extends Model
 {
-    // use Timestamps;
 
     protected $allowed = ['name', 'manufacturer', 'year', 'engine'];
     protected static $table = "cars";
@@ -94,10 +92,24 @@ INSERT STATEMENTI POMOCU MODEL FUNKCIJE ZA INSERT
 
 // $auto->save();
 
-foreach (Car::queryByProperty('manufacturer', 'Audi') as $value) {
-    echo $value . "<br>";
-}
+// foreach (Car::queryByProperty('manufacturer', 'Audi') as $value) {
+//     echo $value . "<br>";
+// }
 
-foreach (Car::all() as $car) {
-    echo $car . "<br>";
-}
+// foreach (Car::all() as $car) {
+//     echo $car . "<br>";
+// }
+
+// $car2 = new Car();
+// $car2->name = "Punto";
+// $car2->manufacturer = "Fiat";
+// $car2->year = 2010;
+// $car2->engine = "Engine 20";
+// $car2->save();
+
+$car2 = new Car();
+// $car2->name = "Uno";
+// $car2->manufacturer = "Fiat";
+$car2->year = 1996;
+// $car2->engine = "Engine 20";
+$car2->update(30);

@@ -6,16 +6,35 @@ use Carbon\Carbon;
 
 trait Timestamps
 {
-    public function save()
+    protected static $created = true;
+    protected static $updated = true;
+    protected static $softDeletes = false;
+
+    public static function saveTimestamps()
     {
-        $id = parent::save();
+        $cols = [];
+        if (self::$created) array_push($cols, "created_at");
+        if (self::$updated) array_push($cols, "updated_at");
+        return $cols;
+    }
 
-        // $conn = new Connection();
+    public static function saveTimestampsValues()
+    {
+        $values = [];
+        if (self::$created) $values += ["created_at" => Carbon::now()];
+        if (self::$updated) $values += ["updated_at" => Carbon::now()];
+        return $values;
+    }
 
-        // echo "SHOW KEYS FROM " . parent::$table . " WHERE Key_name = 'PRIMARY'";
-        // $primary_key = $conn->pdo->query("SHOW KEYS FROM " . parent::$table . " WHERE Key_name = 'PRIMARY'")->fetch()['Column_name'];
-        // $statement = "UPDATE " . parent::$table . " SET created_at = '" . Carbon::now() . "', updated_at = '" . Carbon::now() . "' WHERE $primary_key = $id";
-        // $conn->pdo->prepare($statement)->execute();
-        // return $id;
+    public static function updateTimestamp()
+    {
+        if (self::$updated) return "updated_at = '" . Carbon::now() . "'";
+        else return "";
+    }
+
+    public static function deleteTimestamp()
+    {
+        if (self::$softDeletes) return "deleted_at = '" . Carbon::now() . "'";
+        else return "";
     }
 }
