@@ -20,10 +20,10 @@ class View
         return $twig;
     }
 
-    public static function redirect()
+    public static function redirect($path)
     {
         $url = "http://" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'];
-        header('Location: ' . $url . '/cars');
+        header('Location: ' . $url . $path);
         die();
     }
 }

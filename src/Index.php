@@ -50,12 +50,12 @@ $router->addRoute('GET', '/cars/create', function () use ($twig) {
 
 $router->addRoute("POST", "/cars/create", function () {
     CarController::store($_POST);
-    View::redirect();
+    View::redirect("/cars");
 });
 
 $router->addRoute("POST", '/cars/delete', function () {
     CarController::delete($_POST["id"]);
-    View::redirect();
+    View::redirect("/cars");
 });
 
 $router->run();
