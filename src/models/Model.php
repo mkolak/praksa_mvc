@@ -16,6 +16,7 @@ class Model
     protected $id;
     protected static $table;
 
+
     /*___________________
         MAGIC METHODS
     _____________________

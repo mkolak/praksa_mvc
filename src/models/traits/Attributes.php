@@ -35,4 +35,9 @@ trait Attributes
             else throw new \Exception("Missing property: $property");
         }
     }
+
+    public static function getAllowed()
+    {
+        return static::$allowed;
+    }
 }

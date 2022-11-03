@@ -41,12 +41,12 @@
             <td>
               {{ car.engine|snake_case }}
             </td>
-            <td>
+            {# <td>
               <form action="/cars/update?id={{ car.id }}" method="get">
                 <input type="submit" value="Update" />
               </form>
-            </td>
-            <td class="contact-delete">
+            </td> #}
+            <td>
               <form action='/cars/delete' method="post">
                   <input type="hidden" name="id" value={{ car.id }}>
                   <input type="submit" name="submit" value="Delete">
