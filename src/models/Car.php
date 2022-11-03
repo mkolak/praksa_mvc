@@ -1,11 +1,14 @@
 <?php
 
+namespace App\Models;
+
 require('Model.php');
+
 
 class Car extends Model
 {
 
-    protected $allowed = ['name', 'manufacturer', 'year', 'engine'];
+    protected static $allowed = ['name', 'manufacturer', 'year', 'engine'];
     protected static $table = "cars";
 }
 
@@ -107,9 +110,18 @@ INSERT STATEMENTI POMOCU MODEL FUNKCIJE ZA INSERT
 // $car2->engine = "Engine 20";
 // $car2->save();
 
-$car2 = new Car();
+// $car2 = new Car();
 // $car2->name = "Uno";
 // $car2->manufacturer = "Fiat";
-$car2->year = 1996;
+// $car2->year = 1996;
 // $car2->engine = "Engine 20";
-$car2->update(30);
+// $car2->update(30);
+
+// $car3 = new Car();
+// $car3->setAttributes([
+//     "name" => "Tico",
+//     "manufacturer" => "Daewoo",
+//     "year" => 2000,
+//     "engine" => "Engine 21"
+// ]);
+// echo $car3;

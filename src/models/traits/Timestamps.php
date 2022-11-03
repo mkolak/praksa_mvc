@@ -1,6 +1,8 @@
 <?php
 
-require 'vendor/autoload.php';
+namespace App\Models\Traits;
+
+require '../vendor/autoload.php';
 
 use Carbon\Carbon;
 
@@ -8,7 +10,7 @@ trait Timestamps
 {
     protected static $created = true;
     protected static $updated = true;
-    protected static $softDeletes = false;
+    protected static $softDeletes = true;
 
     public static function saveTimestamps()
     {

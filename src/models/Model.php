@@ -1,27 +1,19 @@
 <?php
 
-use Carbon\Carbon;
+namespace App\Models;
 
 require('traits/Timestamps.php');
-require('Connection.php');
+require('traits/Attributes.php');
+require('connection/Connection.php');
+
+use App\Models\Traits\{Attributes, Timestamps};
+use App\Models\Connection;
 
 class Model
 {
-    use Timestamps;
+    use Timestamps, Attributes;
 
-    protected $attributes;
-    protected $allowed = [];
     protected static $table;
-
-    public function toArray()
-    {
-        $array = [];
-        foreach ($this->allowed as $property) {
-            if (isset($this->attributes[$property])) $array += [$property => $this->attributes[$property]];
-            else $array += [$property => null];
-        }
-        return $array;
-    }
 
     /*___________________
         MAGIC METHODS
@@ -30,7 +22,7 @@ class Model
 
     public function __get($property)
     {
-        if (in_array($property, $this->allowed)) {
+        if (in_array($property, static::$allowed)) {
             if (isset($this->attributes[$property])) return $this->attributes[$property];
             else return null;
         } else return $this->$property;
@@ -38,8 +30,8 @@ class Model
 
     public function __set($property, $value)
     {
-        if (in_array($property, $this->allowed)) $this->attributes[$property] = $value;
-        else throw new Exception("Unexpected property " . $property);
+        if (in_array($property, static::$allowed)) $this->attributes[$property] = $value;
+        else throw new \Exception("Unexpected property " . $property);
     }
 
     public function __toString()
@@ -51,27 +43,27 @@ class Model
     {
         $set = explode('set', $name);
         if (isset($set[1]) && !$set[0]) {
-            $property = implode(array_slice($set, 1));
-            $this->__set($property, $arguments[0]);
+            $property = strtolower(implode(array_slice($set, 1)));
+            $this->$property = $arguments[0];
             return;
         }
         $get = explode('get', $name);
         if (isset($get[1]) && !$get[0]) {
-            $property = implode(array_slice($get, 1));
-            return $this->__get($property);
+            $property = strtolower(implode(array_slice($get, 1)));
+            return $this->$property;
         }
-        throw new Exception("Invalid function name " . $name);
+        throw new \Exception("Invalid function name " . $name);
     }
 
     public function __isset($name)
     {
-        if (!in_array($name, $this->allowed)) throw new Exception("Invalid property " . $name);
+        if (!in_array($name, static::$allowed)) throw new \Exception("Invalid property " . $name);
         return isset($this->attributes[$name]);
     }
 
     public function __unset($name)
     {
-        if (!in_array($name, $this->allowed)) throw new Exception("Invalid property " . $name);
+        if (!in_array($name, static::$allowed)) throw new \Exception("Invalid property " . $name);
         unset($this->attributes[$name]);
     }
 
@@ -84,15 +76,12 @@ class Model
     {
         $conn = new Connection();
 
-        $cols = implode(',', array_merge($this->allowed, $this->saveTimestamps()));
-        $values = ":" . implode(',:', array_merge($this->allowed, $this->saveTimestamps()));
+        $cols = implode(',', array_merge($this->saveAttributes(), $this->saveTimestamps()));
+        $values = ":" . implode(',:', array_merge($this->saveAttributes(), $this->saveTimestamps()));
 
         $statement = "INSERT INTO " . static::$table . " ($cols) VALUES ($values);";
 
-        $insert = [];
-        foreach ($this->allowed as $property)
-            $insert += [$property => (isset($this->attributes[$property]) ? $this->attributes[$property] : null)];
-        $insert += $this->saveTimestampsValues();
+        $insert = array_merge($this->saveAttributesValues(), $this->saveTimestampsValues());
 
         $conn->pdo->prepare($statement)->execute($insert);
 
@@ -112,9 +101,7 @@ class Model
         $models = [];
         while ($row = $query->fetch()) {
             $model = new static();
-            foreach ($model->allowed as $property) {
-                $model->$property = $row[$property];
-            }
+            $model->setAttributes($row);
             array_push($models, $model);
         }
 
@@ -141,10 +128,8 @@ class Model
         $row = $query->fetch();
 
         if ($row) {
-            foreach ($model->allowed as $property) {
-                $model->$property = $row[$property];
-            }
-        } else throw new Exception("Not found with id: " . $id);
+            $model->setAttributes($row);
+        } else throw new \Exception("Not found with id: " . $id);
 
         return $model;
     }
@@ -166,12 +151,10 @@ class Model
         $models = [];
         while ($row = $query->fetch()) {
             $model = new static();
-            foreach ($model->allowed as $property) {
-                $model->$property = $row[$property];
-            }
+            $model->setAttributes($row);
             array_push($models, $model);
         }
-        if (empty($models)) throw new Exception("No rows found with set parameters");
+        if (empty($models)) throw new \Exception("No rows found with set parameters");
         return $models;
     }
 
