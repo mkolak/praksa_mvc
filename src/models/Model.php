@@ -13,6 +13,7 @@ class Model
 {
     use Timestamps, Attributes;
 
+    protected $id;
     protected static $table;
 
     /*___________________
@@ -25,7 +26,11 @@ class Model
         if (in_array($property, static::$allowed)) {
             if (isset($this->attributes[$property])) return $this->attributes[$property];
             else return null;
-        } else return $this->$property;
+        } else if ($property === "id") {
+            return $this->id;
+        } else {
+            return $this->$property;
+        }
     }
 
     public function __set($property, $value)
@@ -57,7 +62,8 @@ class Model
 
     public function __isset($name)
     {
-        if (!in_array($name, static::$allowed)) throw new \Exception("Invalid property " . $name);
+        if ($name === "id") return isset($this->id);
+        else if (!in_array($name, static::$allowed)) throw new \Exception("Invalid property " . $name);
         return isset($this->attributes[$name]);
     }
 

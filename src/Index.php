@@ -6,13 +6,17 @@ require_once("./models/Car.php");
 require_once '../vendor/autoload.php';
 
 use App\Models\Car;
-use Twig\Environment;
 use App\Routes\Router;
-use Twig\Loader\FilesystemLoader;
 
-$loader = new FilesystemLoader('views');
+$loader = new Twig\Loader\FilesystemLoader('views');
 
-$twig = new Environment($loader);
+$twig = new Twig\Environment($loader);
+
+$filter = new Twig\TwigFilter('snake_case', function ($str) {
+    return implode('_', explode(' ', strtolower($str)));
+});
+
+$twig->addFilter($filter);
 
 $router = new Router();
 
@@ -20,50 +24,61 @@ $router->addRoute('GET', '/home', function () {
     echo "Home page";
 });
 
-$router->addRoute('GET', '/cars', function () use($twig){
-    if(!empty($_GET)){
+$router->addRoute('GET', '/cars', function () use ($twig) {
+    if (!empty($_GET)) {
         $property = array_keys($_GET)[0];
         $value = array_values($_GET)[0];
         $cars = Car::queryByProperty($property, $value);
-    }
-    else $cars = Car::all();
-    echo $twig->render('list.twig', ['cars' => $cars]);
+    } else $cars = Car::all();
+    echo $twig->render('cars_list.twig', ['cars' => $cars]);
 });
 
-$router->addRoute('GET', '/cars/create', function() use ($twig){
+$router->addRoute('GET', '/cars/create', function () use ($twig) {
     $fields = [
         [
             "name" => "Name",
             "inputName" => "name",
-            "inputType" => "Text" 
+            "inputType" => "Text"
         ],
         [
             "name" => "Manufacturer",
             "inputName" => "manufacturer",
-            "inputType" => "Text" 
+            "inputType" => "Text"
         ],
         [
             "name" => "Year",
             "inputName" => "year",
-            "inputType" => "number" 
+            "inputType" => "number"
         ],
         [
             "name" => "Engine",
             "inputName" => "engine",
-            "inputType" => "Text" 
+            "inputType" => "Text"
         ]
     ];
     echo $twig->render('create.twig', ["fields" => $fields]);
 });
 
-// $router->addRoute("POST", "/cars/create", function(){
-//     var_dump($_POST);
-// });
+$router->addRoute("POST", "/cars/create", function () {
+    $car = new Car();
+    $car->setAttributes($_POST);
+    $car->save();
+    $url = "http://" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'];
+    header('Location: ' . $url . '/cars');
+    die();
+});
 
 $router->addRoute('POST', '/cars', function () {
     $car = new Car();
     $car->setAttributes($_POST);
     $car->save();
+});
+
+$router->addRoute("POST", '/cars/delete', function () {
+    Car::delete($_POST['id']);
+    $url = "http://" . $_SERVER['SERVER_NAME'] . ":" . $_SERVER['SERVER_PORT'];
+    header('Location: ' . $url . '/cars');
+    die();
 });
 
 $router->run();

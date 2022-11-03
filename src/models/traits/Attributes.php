@@ -29,6 +29,7 @@ trait Attributes
 
     public function setAttributes($values)
     {
+        $this->id = $values["id"];
         foreach (static::$allowed as $property) {
             if (isset($values[$property])) $this->attributes[$property] = $values[$property];
             else throw new \Exception("Missing property: $property");

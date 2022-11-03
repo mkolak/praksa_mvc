@@ -9,12 +9,14 @@
     </title>
   </head>
   <body>
-    <form method="post">
+    <form method="POST" action="">
       {% for field in fields %}
         <label for="{{ field.inputName }}">{{ field.name }}</label><br />
-        <input type="{{ field.inputType }}" for="{{ field.inputName }}" /><br />
+        <input type="{{ field.inputType }}"
+          name="{{ field.inputName }}"
+          value="" /><br />
       {% endfor %}
-      <input type="submit"></input>
+      <input type="submit" value="Submit" />
     </form>
   </body>
 </html>
